@@ -11,7 +11,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("max-bot")
 
-app = FastAPI(title="MAX DeepSeek Tutor Bot", version="1.2.0")
+app = FastAPI(title="MAX DeepSeek Tutor Bot", version="1.3.0")
 handler = BotHandler()
 
 
@@ -116,9 +116,8 @@ async def webhook(
 
 
 if __name__ == "__main__":
+    import asyncio
     import os
-
-    import uvicorn
 
     try:
         from start import prepare_ca_bundle
@@ -128,6 +127,19 @@ if __name__ == "__main__":
     except Exception:
         log.exception("Could not prepare Russian Trusted CA bundle; continuing with default trust store")
 
-    port = int(os.getenv("PORT", "8000"))
-    log.info("Starting Uvicorn on 0.0.0.0:%s", port)
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level=settings.log_level.lower())
+    bot_mode = os.getenv("BOT_MODE", "auto").strip().lower()
+    plan = os.getenv("BOTHOST_USER_PLAN", "").strip().lower()
+
+    if bot_mode == "auto":
+        bot_mode = "polling" if plan in {"basic", "start", "free"} else "webhook"
+
+    if bot_mode == "polling":
+        log.info("Starting in Long Polling mode (plan=%s)", plan or "<unknown>")
+        from run_polling import main as polling_main
+        asyncio.run(polling_main())
+    else:
+        import uvicorn
+
+        port = int(os.getenv("PORT", "3000"))
+        log.info("Starting Uvicorn webhook server on 0.0.0.0:%s", port)
+        uvicorn.run(app, host="0.0.0.0", port=port, log_level=settings.log_level.lower())
