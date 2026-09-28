@@ -4,6 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
+    # Bothost-provided domain, if "Use domain" is enabled in the panel.
+    domain: str = ""
+
     max_bot_token: str = ""
     max_webhook_secret: str = ""
     max_webhook_url: str = ""
@@ -18,6 +21,15 @@ class Settings(BaseSettings):
     history_messages: int = 12
     image_detail: str = "original"
     log_level: str = "INFO"
+
+    @property
+    def effective_webhook_url(self) -> str:
+        # On Bothost prefer the real DOMAIN supplied by the platform.
+        # This avoids guessing a hostname from BOT_ID.
+        if self.domain:
+            host = self.domain.strip().removeprefix("https://").removeprefix("http://").rstrip("/")
+            return f"https://{host}/webhook"
+        return self.max_webhook_url.strip()
 
     def validate_runtime(self) -> None:
         missing = []
