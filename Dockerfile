@@ -9,8 +9,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY start.py ./start.py
 COPY setup_webhook.py ./setup_webhook.py
 COPY check_setup.py ./check_setup.py
 
-# Bothost can provide PORT; locally/default we use 8000.
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# start.py prepares a combined standard + Russian Trusted CA bundle first,
+# then launches FastAPI on Bothost's PORT.
+CMD ["python", "start.py"]
