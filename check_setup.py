@@ -6,6 +6,7 @@ import httpx
 
 from app.config import settings
 from app.max_api import MaxApiClient
+from app.ssl_utils import create_ssl_context
 
 
 async def check_deepseek() -> None:
@@ -18,7 +19,7 @@ async def check_deepseek() -> None:
         "messages": [{"role": "user", "content": "Ответь одним словом: работает"}],
         "max_tokens": 20,
     }
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=60, verify=create_ssl_context()) as client:
         r = await client.post(
             f"{settings.deepseek_base_url.rstrip('/')}/chat/completions",
             headers=headers,
