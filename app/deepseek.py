@@ -4,6 +4,7 @@ import httpx
 
 from .config import settings
 from .prompts import SYSTEM_PROMPT
+from .ssl_utils import create_ssl_context
 
 
 class DeepSeekClient:
@@ -14,7 +15,12 @@ class DeepSeekClient:
 
     async def answer(self, history: List[dict], text: str, image_data_urls: List[str]) -> str:
         user_content: list[dict] = []
-        user_content.append({"type": "text", "text": text or "Проанализируй изображение и ответь на вопрос/реши задачу."})
+        user_content.append(
+            {
+                "type": "text",
+                "text": text or "Проанализируй изображение и ответь на вопрос/реши задачу.",
+            }
+        )
         for data_url in image_data_urls:
             user_content.append(
                 {
@@ -38,8 +44,12 @@ class DeepSeekClient:
             "Content-Type": "application/json",
         }
 
-        async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+        async with httpx.AsyncClient(timeout=120, verify=create_ssl_context()) as client:
+            response = await client.post(
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+            )
             response.raise_for_status()
             data = response.json()
 
