@@ -20,13 +20,18 @@ async def main() -> None:
     subs = await api.get_subscriptions()
     active = subs.get("subscriptions") or []
     if active:
-        urls = [item.get("url", "<unknown>") for item in active]
-        raise RuntimeError(
-            "Long Polling cannot run while MAX Webhook subscriptions are active. "
-            "Active webhook(s): " + ", ".join(urls)
-        )
+        for item in active:
+            url = item.get("url")
+            if not url:
+                continue
+            try:
+                result = await api.delete_webhook(url)
+                log.info("Removed webhook before Long Polling: %s -> %s", url, result)
+            except Exception:
+                log.exception("Failed to remove webhook %s", url)
+                raise
 
-    log.info("No active webhook subscriptions. Long Polling started.")
+    log.info("Long Polling started.")
 
     marker = None
     while True:
