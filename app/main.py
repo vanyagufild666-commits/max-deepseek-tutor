@@ -50,18 +50,17 @@ async def startup_checks() -> None:
         log.info("MAX webhook subscriptions: %s", urls or "<none>")
 
         if settings.max_webhook_url:
-            if settings.max_webhook_url in urls:
-                log.info("Configured webhook is already registered in MAX")
-            else:
-                result = await handler.max_api.subscribe_webhook(
-                    settings.max_webhook_url,
-                    settings.max_webhook_secret,
-                )
-                log.info(
-                    "Webhook registration result for %s: %s",
-                    settings.max_webhook_url,
-                    result,
-                )
+            # Re-submit on every startup so URL, event types and secret stay in sync
+            # with the current Bothost environment after redeploys.
+            result = await handler.max_api.subscribe_webhook(
+                settings.max_webhook_url,
+                settings.max_webhook_secret,
+            )
+            log.info(
+                "Webhook synchronization result for %s: %s",
+                settings.max_webhook_url,
+                result,
+            )
         else:
             log.warning("MAX_WEBHOOK_URL is empty; MAX cannot deliver webhook events")
     except Exception:
