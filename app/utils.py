@@ -5,6 +5,8 @@ from typing import List, Tuple
 import httpx
 from PIL import Image
 
+from .ssl_utils import create_ssl_context
+
 try:
     from pillow_heif import register_heif_opener
     register_heif_opener()
@@ -87,7 +89,11 @@ async def image_url_to_data_url(url: str, auth_token: str | None = None) -> str:
     headers = {}
     if auth_token:
         headers["Authorization"] = auth_token
-    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        timeout=30,
+        follow_redirects=True,
+        verify=create_ssl_context(),
+    ) as client:
         response = await client.get(url, headers=headers)
         response.raise_for_status()
         raw = response.content
