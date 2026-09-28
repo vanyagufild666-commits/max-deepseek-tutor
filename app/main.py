@@ -101,3 +101,21 @@ async def webhook(
     )
     background_tasks.add_task(handler.handle_update, update)
     return {"ok": True}
+
+
+if __name__ == "__main__":
+    import os
+
+    import uvicorn
+
+    try:
+        from start import prepare_ca_bundle
+
+        bundle = prepare_ca_bundle()
+        log.info("Combined CA bundle ready: %s", bundle)
+    except Exception:
+        log.exception("Could not prepare Russian Trusted CA bundle; continuing with default trust store")
+
+    port = int(os.getenv("PORT", "8000"))
+    log.info("Starting Uvicorn on 0.0.0.0:%s", port)
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level=settings.log_level.lower())
