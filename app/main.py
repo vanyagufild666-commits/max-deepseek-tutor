@@ -53,6 +53,14 @@ async def startup_checks() -> None:
         log.info("MAX webhook subscriptions: %s", urls or "<none>")
 
         if webhook_url:
+            for old_url in urls:
+                if old_url != webhook_url:
+                    try:
+                        result = await handler.max_api.delete_webhook(old_url)
+                        log.info("Removed stale MAX webhook %s: %s", old_url, result)
+                    except Exception:
+                        log.exception("Failed to remove stale MAX webhook %s", old_url)
+
             result = await handler.max_api.subscribe_webhook(
                 webhook_url,
                 settings.max_webhook_secret,
