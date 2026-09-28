@@ -18,6 +18,12 @@ class MaxApiClient:
             r.raise_for_status()
             return r.json()
 
+    async def get_subscriptions(self) -> dict:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(f"{self.base_url}/subscriptions", headers=self.headers)
+            r.raise_for_status()
+            return r.json()
+
     async def send_text(self, target_kind: str, target_id: int, text: str) -> None:
         chunks = split_text(text, settings.max_output_chunk)
         async with httpx.AsyncClient(timeout=30) as client:
