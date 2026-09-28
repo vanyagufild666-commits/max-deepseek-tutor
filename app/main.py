@@ -11,18 +11,21 @@ logging.basicConfig(
 )
 log = logging.getLogger("max-bot")
 
-app = FastAPI(title="MAX DeepSeek Tutor Bot", version="1.1.0")
+app = FastAPI(title="MAX DeepSeek Tutor Bot", version="1.2.0")
 handler = BotHandler()
 
 
 @app.on_event("startup")
 async def startup_checks() -> None:
+    webhook_url = settings.effective_webhook_url
+
     log.info("Application starting")
     log.info(
-        "Config: MAX token=%s, DeepSeek key=%s, webhook URL=%s, webhook secret=%s",
+        "Config: MAX token=%s, DeepSeek key=%s, DOMAIN=%s, effective webhook=%s, webhook secret=%s",
         bool(settings.max_bot_token),
         bool(settings.deepseek_api_key),
-        bool(settings.max_webhook_url),
+        settings.domain or "<empty>",
+        webhook_url or "<empty>",
         bool(settings.max_webhook_secret),
     )
 
@@ -49,20 +52,20 @@ async def startup_checks() -> None:
         urls = [item.get("url") for item in active if item.get("url")]
         log.info("MAX webhook subscriptions: %s", urls or "<none>")
 
-        if settings.max_webhook_url:
-            # Re-submit on every startup so URL, event types and secret stay in sync
-            # with the current Bothost environment after redeploys.
+        if webhook_url:
             result = await handler.max_api.subscribe_webhook(
-                settings.max_webhook_url,
+                webhook_url,
                 settings.max_webhook_secret,
             )
             log.info(
                 "Webhook synchronization result for %s: %s",
-                settings.max_webhook_url,
+                webhook_url,
                 result,
             )
         else:
-            log.warning("MAX_WEBHOOK_URL is empty; MAX cannot deliver webhook events")
+            log.warning(
+                "No public webhook URL. Enable 'Use domain' in Bothost or set MAX_WEBHOOK_URL."
+            )
     except Exception:
         log.exception("Webhook subscription check/setup FAILED")
 
@@ -75,7 +78,8 @@ async def health() -> dict:
         "deepseek_model": settings.deepseek_model,
         "max_token_configured": bool(settings.max_bot_token),
         "deepseek_key_configured": bool(settings.deepseek_api_key),
-        "webhook_url_configured": bool(settings.max_webhook_url),
+        "bothost_domain": settings.domain or None,
+        "effective_webhook_url": settings.effective_webhook_url or None,
         "webhook_secret_configured": bool(settings.max_webhook_secret),
     }
 
